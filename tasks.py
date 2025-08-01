@@ -73,7 +73,12 @@ def qpublic_main_chain():
 @app.task
 def qpublic_single_url_chain(url: str):
     platform = "qpublic"
-    parcel_id = url.split("KeyValue=")[-1]
+    try:
+        parcel_id = url.split("KeyValue=")[-1] if "KeyValue=" in url else url.split("/")[-1]
+    except Exception as e:
+        logging.error(f"Ошибка извлечения parcel_id из URL {url}: {e}")
+        parcel_id = "unknown"
+    
     unique_name = generate_name(platform, parcel_id)
 
     chain(scrape_url_task.s(url), save_html_task.s(platform=platform, name=unique_name), qpublic_parse_single_html_task.s(),
