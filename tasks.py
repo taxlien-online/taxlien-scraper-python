@@ -73,11 +73,35 @@ def qpublic_main_chain():
 @app.task
 def qpublic_single_url_chain(url: str):
     platform = "qpublic"
+    
+    # Валидация входного URL
+    if not url or not isinstance(url, str):
+        logging.error(f"Некорректный URL: {url}")
+        return
+    
     try:
-        parcel_id = url.split("KeyValue=")[-1] if "KeyValue=" in url else url.split("/")[-1]
+        # Более детальная логика извлечения parcel_id
+        if "KeyValue=" in url:
+            parcel_id = url.split("KeyValue=")[-1].split("&")[0]  # Убираем параметры после &
+        elif "/" in url:
+            parcel_id = url.split("/")[-1].split("?")[0]  # Убираем query параметры
+        else:
+            parcel_id = url.strip()
+            
+        # Дополнительная очистка parcel_id
+        parcel_id = parcel_id.strip().replace(" ", "")
+        
     except Exception as e:
         logging.error(f"Ошибка извлечения parcel_id из URL {url}: {e}")
         parcel_id = "unknown"
+    
+    # Улучшенная валидация parcel_id
+    if not parcel_id or parcel_id == "unknown" or len(parcel_id) < 3:
+        parcel_id = f"fallback_{abs(hash(url)) % 10000}"
+    
+    # Проверка на максимальную длину
+    if len(parcel_id) > 100:
+        parcel_id = parcel_id[:100]
     
     unique_name = generate_name(platform, parcel_id)
 
